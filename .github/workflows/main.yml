@@ -1,0 +1,27 @@
+name: JMeter Distributed Load Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.JMETER_MASTER_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.JMETER_SLAVE_IP }} >> ~/.ssh/known_hosts
+
+      - name: Start JMeter Server on Slave
+        run: |
+          ssh root@${{ secrets.JMETER_SLAVE_IP }} "cd /path/to/jmeter/bin && ./jmeter-server -Dserver.rmi.ssl.disable=true &"
+
+      - name: Run JMeter Test from Master
+        run: |
+          ssh root@${{ secrets.JMETER_MASTER_IP }} "cd /path/to/jmeter/bin && ./jmeter -n -t /path/to/test
